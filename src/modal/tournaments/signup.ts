@@ -43,7 +43,13 @@ export class SignUpModal implements Modal {
             const playerName = intr.fields.getTextInputValue('ingame_name');
             const teamName = intr.fields.getTextInputValue('team_name');
             const playerid = intr.fields.getTextInputValue('ingame_id');
-            const team = new Team(teamName, intr.user.username, intr.user.id, tournament.id);
+            const team = new Team(
+                teamName,
+                intr.user.username,
+                intr.user.id,
+                tournament.id,
+                intr.user.avatarURL() ?? 'https://i.imgur.com/V4FP5W7.png'
+            );
 
             if (await team.isTeamNameTaken(teamName, tournament.id)) {
                 const embed = new EmbedBuilder({

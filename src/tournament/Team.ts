@@ -11,6 +11,7 @@ export class Team {
     teamLeaderId: string;
     teamStatus: number;
     teamCode: string;
+    teamAvatar: string;
     db: DBConnection;
 
     constructor(
@@ -18,6 +19,7 @@ export class Team {
         teamLeader: string,
         teamLeaderId: string,
         tID: number,
+        teamAvatar: string,
         teamStatus?: number,
         teamCode?: string,
         teamId?: number
@@ -26,15 +28,18 @@ export class Team {
         this.teamLeader = teamLeader;
         this.teamLeaderId = teamLeaderId;
         this.tID = tID;
+        this.teamAvatar = teamAvatar;
         this.teamStatus = teamStatus ? teamStatus : 1;
         this.teamId = teamId ? teamId : null;
-        teamCode ? (this.teamCode = teamCode) : (this.teamCode = uuidv4().substring(0, 6));
+        this.teamCode = teamCode
+            ? (this.teamCode = teamCode)
+            : (this.teamCode = uuidv4().substring(0, 6));
         this.db = new DBConnection();
     }
 
     async createTeam(): Promise<void> {
         try {
-            const sql = `INSERT INTO teams (teamName, teamLeader, tID, teamCode, teamLeaderId) VALUES ('${this.teamName}', '${this.teamLeader}', ${this.tID}, '${this.teamCode}', '${this.teamLeaderId}')`;
+            const sql = `INSERT INTO teams (teamName, teamLeader, tID, teamCode, teamLeaderId, teamAvatar) VALUES ('${this.teamName}', '${this.teamLeader}', ${this.tID}, '${this.teamCode}', '${this.teamLeaderId}, '${this.teamAvatar}'')`;
             await this.db.con.query(sql);
         } catch (err) {
             console.log(err);
@@ -60,7 +65,6 @@ export class Team {
         try {
             const sql = `SELECT * FROM teams WHERE teamName = '${teamName}' AND tID = '${tournamentID}'`;
             const result = await this.db.con.query(sql);
-            console.log(result);
         } catch (err) {
             console.log(err);
         }
@@ -119,6 +123,7 @@ export async function getTeamByCode(code: string): Promise<Team> {
                     result[0].teamLeader,
                     result[0].teamLeaderId,
                     result[0].tID,
+                    result[0].teamAvatar,
                     result[0].teamStatus,
                     result[0].teamCode,
                     result[0].teamID
@@ -210,6 +215,7 @@ export async function getTournamentTeams_Ex(tournament_id: number): Promise<Team
                         team.teamLeader,
                         team.teamLeaderId,
                         team.tID,
+                        team.teamAvatar,
                         team.teamStatus,
                         team.teamCode,
                         team.teamID
@@ -281,6 +287,7 @@ export async function getTeamByUserId(userid: string, tournament_id: number): Pr
                     result[0].teamLeader,
                     result[0].teamLeaderId,
                     result[0].tID,
+                    result[0].teamAvatar,
                     result[0].teamStatus,
                     result[0].teamCode,
                     result[0].teamID

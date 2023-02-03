@@ -91,7 +91,7 @@ export class SignUpTeamModal implements Modal {
                     title: 'Moonbane Slayers Tournament',
                     description: `The team ${teamName} is already full!`,
                     footer: {
-                        text: "thnk it's a mistake? Contact a moderator!",
+                        text: "think it's a mistake? Contact a moderator!",
                     },
                     timestamp: Date.now(),
                     color: resolveColor('#fe0c03'),
