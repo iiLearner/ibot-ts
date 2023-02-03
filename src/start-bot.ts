@@ -1,17 +1,12 @@
 import { REST } from '@discordjs/rest';
-import { Options, Partials } from 'discord.js';
+import { Options, Partials, TextChannel } from 'discord.js';
 import { createRequire } from 'node:module';
 
 import { Button } from './buttons/index.js';
-import { HelpCommand, InfoCommand, TestCommand } from './commands/chat/index.js';
-import {
-    ChatCommandMetadata,
-    Command,
-    MessageCommandMetadata,
-    UserCommandMetadata,
-} from './commands/index.js';
-import { ViewDateSent } from './commands/message/index.js';
-import { ViewDateJoined } from './commands/user/index.js';
+import { SignUpButton, SignUpSoloButton, SignUpTeamButton } from './buttons/tournament/index.js';
+import { ChatCommandMetadata, Command } from './commands/index.js';
+import { TournamentCommand } from './commands/modal/index.js';
+import { DBConnection } from './database/connect.js';
 import {
     ButtonHandler,
     CommandHandler,
@@ -31,7 +26,17 @@ import {
     JobService,
     Logger,
 } from './services/index.js';
+import { Tournament } from './tournament/Tournament.js';
 import { Trigger } from './triggers/index.js';
+import { Team } from './tournament/Team.js';
+import { SignUpTimeLeft } from './buttons/tournament/time_left.js';
+import { SignOff } from './buttons/tournament/signoff.js';
+import { TournametTeams } from './buttons/tournament/teams.js';
+import { CheckInChecker } from './jobs/checkin-checker.js';
+import moment from 'moment';
+import { StartTournamentButton } from './buttons/tournament/start_tournament.js';
+import { CheckIn } from './buttons/tournament/checkin.js';
+import { DeleterChecker } from './jobs/deleter.js';
 
 const require = createRequire(import.meta.url);
 let Config = require('../config/config.json');
@@ -56,22 +61,31 @@ async function start(): Promise<void> {
     // Commands
     let commands: Command[] = [
         // Chat Commands
-        new HelpCommand(),
-        new InfoCommand(),
-        new TestCommand(),
+        //new HelpCommand(),
+        //new InfoCommand(),
+        //new TestCommand(),
 
         // Message Context Commands
-        new ViewDateSent(),
+        ///new ViewDateSent(),
 
         // User Context Commands
-        new ViewDateJoined(),
+        //new ViewDateJoined(),
+
+        new TournamentCommand(),
 
         // TODO: Add new commands here
     ];
 
     // Buttons
     let buttons: Button[] = [
-        // TODO: Add new buttons here
+        new SignUpButton(),
+        new SignUpSoloButton(),
+        new SignUpTeamButton(),
+        new SignUpTimeLeft(),
+        new SignOff(),
+        new CheckIn(),
+        new TournametTeams(),
+        new StartTournamentButton(),
     ];
 
     // Reactions
@@ -95,6 +109,8 @@ async function start(): Promise<void> {
 
     // Jobs
     let jobs: Job[] = [
+        new CheckInChecker(client),
+        new DeleterChecker(client),
         // TODO: Add new jobs here
     ];
 
@@ -111,6 +127,9 @@ async function start(): Promise<void> {
         new JobService(jobs)
     );
 
+    // set timezone
+    moment.tz.setDefault('Europe/Rome');
+
     // Register
     if (process.argv[2] == 'commands') {
         try {
@@ -118,8 +137,6 @@ async function start(): Promise<void> {
             let commandRegistrationService = new CommandRegistrationService(rest);
             let localCmds = [
                 ...Object.values(ChatCommandMetadata).sort((a, b) => (a.name > b.name ? 1 : -1)),
-                ...Object.values(MessageCommandMetadata).sort((a, b) => (a.name > b.name ? 1 : -1)),
-                ...Object.values(UserCommandMetadata).sort((a, b) => (a.name > b.name ? 1 : -1)),
             ];
             await commandRegistrationService.process(localCmds, process.argv);
         } catch (error) {
@@ -131,6 +148,9 @@ async function start(): Promise<void> {
     }
 
     await bot.start();
+
+    // database connection
+    new DBConnection(Config);
 }
 
 process.on('unhandledRejection', (reason, _promise) => {

@@ -12,6 +12,7 @@ import {
     PartialUser,
     RateLimitData,
     RESTEvents,
+    TextChannel,
     User,
 } from 'discord.js';
 import { createRequire } from 'node:module';
@@ -26,6 +27,10 @@ import {
 } from '../events/index.js';
 import { JobService, Logger } from '../services/index.js';
 import { PartialUtils } from '../utils/index.js';
+import { SignUpSoloModal } from '../modal/tournaments/signup_solo.js';
+import { SignUpTeamModal } from '../modal/tournaments/signup_team.js';
+import { SignUpModal } from '../modal/tournaments/signup.js';
+import { StartTournamentModal } from '../modal/tournaments/start_tournament.js';
 
 const require = createRequire(import.meta.url);
 let Config = require('../../config/config.json');
@@ -84,11 +89,51 @@ export class Bot {
         let userTag = this.client.user?.tag;
         Logger.info(Logs.info.clientLogin.replaceAll('{USER_TAG}', userTag));
 
-        if (!Debug.dummyMode.enabled) {
-            this.jobService.start();
-        }
+        this.jobService.start();
+        //if (!Debug.dummyMode.enabled) {
+        //}
 
         this.ready = true;
+        // get rabbit channel
+        /*const channel = (await this.client.channels.fetch('1004295429082595328')) as TextChannel;
+
+        let lastmessage = '1069073060310818826';
+        for (let index = 0; index < 70; index++) {
+            const messages = await channel.messages.fetch({
+                limit: 100,
+                before: lastmessage,
+            });
+            lastmessage = messages.lastKey();
+            index = 0;
+            for (const message of messages.values()) {
+                // check message content
+                if (message.author.id != '981073848399187978') continue;
+                console.log(message.content, index);
+                index += 1;
+
+                if (
+                    message.content
+                        .toLowerCase()
+                        .includes('liam said hi and gave you a limited role: year of rabbit!') &&
+                    message.author.id === '981073848399187978'
+                ) {
+                    console.log(message.mentions.repliedUser);
+                    // get role
+                    const role = await message.guild?.roles.fetch('1059692364324671528');
+                    const user = message.mentions.repliedUser;
+
+                    // give user the role
+                    if (role && user) {
+                        const member = await message.guild?.members.fetch(user.id);
+                        await member?.roles.add(role);
+                    }
+                }
+            }
+
+            // wait 1 second
+            await new Promise(resolve => setTimeout(resolve, 5000));
+        }*/
+
         Logger.info(Logs.info.clientReady);
     }
 
@@ -159,6 +204,26 @@ export class Bot {
                 await this.buttonHandler.process(intr);
             } catch (error) {
                 Logger.error(Logs.error.button, error);
+            }
+        }
+
+        // modal submit
+        else if (intr.isModalSubmit()) {
+            switch (intr.customId) {
+                case 'signup_solo_modal':
+                    new SignUpSoloModal().execute(intr);
+                    break;
+                case 'signup_modal':
+                    new SignUpModal().execute(intr);
+                    break;
+                case 'signup_team_modal':
+                    new SignUpTeamModal().execute(intr);
+                    break;
+                case 'start_tournament':
+                    new StartTournamentModal().execute(intr);
+                    break;
+                default:
+                    break;
             }
         }
     }
