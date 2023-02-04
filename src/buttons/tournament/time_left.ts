@@ -21,32 +21,12 @@ export class SignUpTimeLeft implements Button {
             ).subtract(2, 'hours');
             const tournamentTime = moment(tournament.tournament_time, 'DD-MM-YYYY HH:mm:ss');
 
-            const formattedStart = secsToTime(tournamentTime.diff(moment(), 'seconds'));
-            const formattedClose = secsToTime(registrationClose.diff(moment(), 'seconds'));
-
-            // if its already started, then show it
-            if (moment().isAfter(tournamentTime)) {
-                const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament - Time Left',
-                    description: `The tournament has already started!`,
-                    footer: {
-                        text: 'Doubts or questions? DM tournament host!',
-                    },
-                    timestamp: Date.now(),
-                    color: resolveColor('#fe0c03'),
-                });
-                if (intr.replied || intr.deferred) {
-                    intr.editReply({
-                        embeds: [embed],
-                    });
-                } else {
-                    intr.reply({
-                        embeds: [embed],
-                        ephemeral: true,
-                    });
-                }
-                return;
-            }
+            const formattedStart = moment().isAfter(tournamentTime)
+                ? 'Started'
+                : secsToTime(tournamentTime.diff(moment(), 'seconds'));
+            const formattedClose = moment().isAfter(registrationClose)
+                ? 'Registration Closed'
+                : secsToTime(registrationClose.diff(moment(), 'seconds'));
 
             const embed = new EmbedBuilder({
                 title: 'Moonbane Slayers Tournament - Time Left',

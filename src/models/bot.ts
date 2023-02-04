@@ -31,6 +31,7 @@ import { SignUpSoloModal } from '../modal/tournaments/signup_solo.js';
 import { SignUpTeamModal } from '../modal/tournaments/signup_team.js';
 import { SignUpModal } from '../modal/tournaments/signup.js';
 import { StartTournamentModal } from '../modal/tournaments/start_tournament.js';
+import { CheckIn } from '../buttons/tournament/checkin.js';
 
 const require = createRequire(import.meta.url);
 let Config = require('../../config/config.json');
@@ -221,6 +222,9 @@ export class Bot {
                     break;
                 case 'start_tournament':
                     new StartTournamentModal().execute(intr);
+                    break;
+                case 'checkin_modal_response':
+                    new CheckIn().execute(intr);
                     break;
                 default:
                     break;

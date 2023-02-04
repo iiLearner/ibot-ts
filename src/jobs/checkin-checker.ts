@@ -69,6 +69,12 @@ export class CheckInChecker implements Job {
                                         label: 'Time Left',
                                         custom_id: 'sign_up_time_left',
                                     },
+                                    {
+                                        type: 2,
+                                        style: 2,
+                                        label: 'Teams',
+                                        custom_id: 'tournament_teams',
+                                    },
                                 ],
                             },
                         ],

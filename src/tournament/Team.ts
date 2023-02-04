@@ -136,11 +136,15 @@ export async function getTeamByCode(code: string): Promise<Team> {
     });
 }
 
-export async function updateTeamStatus(team: number, status: number): Promise<void> {
+export async function updateTeamStatus(
+    team: number,
+    status: number,
+    selection: string
+): Promise<void> {
     return await new Promise((resolve, reject) => {
         try {
             const db = new DBConnection();
-            const sql = `UPDATE teams SET teamStatus = ${status} WHERE teamID = ${team}`;
+            const sql = `UPDATE teams SET teamStatus = ${status}, teamSelection = '${selection}' WHERE teamID = ${team}`;
             db.con.query(sql, (err, result) => {
                 if (err) reject(err);
                 resolve(result);

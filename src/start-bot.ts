@@ -85,7 +85,6 @@ async function start(): Promise<void> {
         new CheckinModal(),
         new SignUpTimeLeft(),
         new SignOff(),
-        new CheckIn(),
         new TournametTeams(),
         new StartTournamentButton(),
     ];

@@ -1,24 +1,24 @@
-import { ButtonInteraction, EmbedBuilder, TextChannel, resolveColor } from 'discord.js';
+import {
+    ButtonInteraction,
+    EmbedBuilder,
+    ModalSubmitInteraction,
+    TextChannel,
+    resolveColor,
+} from 'discord.js';
 import moment from 'moment';
 
-import { EventData } from '../../models/internal-models.js';
-import {
-    getTeamByUserId,
-    getTeamMembers,
-    removePlayerFromTeam,
-    removeTeam,
-    updateTeamStatus,
-} from '../../tournament/Team.js';
+import { getTeamByUserId, updateTeamStatus } from '../../tournament/Team.js';
 import { getTournamentByMessage } from '../../tournament/Tournament.js';
 import { Button, ButtonDeferType } from '../button.js';
+import { Modal } from '../../modal/modal.js';
 
-export class CheckIn implements Button {
-    public readonly ids = ['checkin'];
+export class CheckIn implements Modal {
+    public readonly ids = ['checkin_modal_response'];
     public readonly deferType = ButtonDeferType.NONE;
     public readonly requireEmbedAuthorTag = true;
     public readonly requireGuild = true;
 
-    public async execute(intr: ButtonInteraction, _data: EventData): Promise<void> {
+    public async execute(intr: ModalSubmitInteraction): Promise<void> {
         const messageId = intr.message.id;
         try {
             const tournament = await getTournamentByMessage(messageId);
@@ -132,8 +132,23 @@ export class CheckIn implements Button {
                 return;
             }
 
+            const teamSelections = [];
+            for (let index = 0; index < tournament.mode; index++) {
+                teamSelections.push(intr.fields.getTextInputValue(`team_selection_${index}`));
+            }
+
+            // convert array to json object
+            let formattedTeams = '{';
+            teamSelections.forEach((team, index) => {
+                formattedTeams += `"Game ${index + 1}": "${team}",`;
+            });
+
+            //remove last comma
+            formattedTeams = formattedTeams.slice(0, -1);
+            formattedTeams += '}';
+
             // checkin the team
-            await updateTeamStatus(team.teamId, 2);
+            await updateTeamStatus(team.teamId, 2, formattedTeams);
 
             const embed = new EmbedBuilder({
                 title: 'Moonbane Slayers Tournament',
