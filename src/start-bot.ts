@@ -37,6 +37,7 @@ import moment from 'moment';
 import { StartTournamentButton } from './buttons/tournament/start_tournament.js';
 import { CheckIn } from './buttons/tournament/checkin.js';
 import { DeleterChecker } from './jobs/deleter.js';
+import { CheckinModal } from './buttons/tournament/checkin_modal.js';
 
 const require = createRequire(import.meta.url);
 let Config = require('../config/config.json');
@@ -81,6 +82,7 @@ async function start(): Promise<void> {
         new SignUpButton(),
         new SignUpSoloButton(),
         new SignUpTeamButton(),
+        new CheckinModal(),
         new SignUpTimeLeft(),
         new SignOff(),
         new CheckIn(),

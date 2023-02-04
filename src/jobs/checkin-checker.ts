@@ -11,7 +11,7 @@ import { CustomClient } from '../extensions/custom-client.js';
 export class CheckInChecker implements Job {
     name = 'CheckInChecker';
     log = false;
-    schedule = '*/5 * * * *';
+    schedule = '* * * * *';
 
     constructor(private client: CustomClient) {}
 
@@ -55,13 +55,19 @@ export class CheckInChecker implements Job {
                                         type: 2,
                                         style: 1,
                                         label: 'Check-in',
-                                        custom_id: 'checkin_modal_response',
+                                        custom_id: 'checkin_modal',
                                     },
                                     {
                                         type: 2,
                                         style: 2,
                                         label: 'Start Tournament',
                                         custom_id: 'start_tournament_modal',
+                                    },
+                                    {
+                                        type: 2,
+                                        style: 2,
+                                        label: 'Time Left',
+                                        custom_id: 'sign_up_time_left',
                                     },
                                 ],
                             },
