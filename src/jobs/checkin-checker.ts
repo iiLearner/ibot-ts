@@ -55,7 +55,7 @@ export class CheckInChecker implements Job {
                                         type: 2,
                                         style: 1,
                                         label: 'Check-in',
-                                        custom_id: 'checkin',
+                                        custom_id: 'checkin_modal_response',
                                     },
                                     {
                                         type: 2,

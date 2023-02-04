@@ -30,7 +30,12 @@ export class CheckIn implements Button {
             // check if checkin is not available
             if (
                 moment().isBefore(registrationClose) ||
-                moment().isAfter(moment(tournament.tournament_time, 'DD-MM-YYYY HH:mm:ss'))
+                moment().isAfter(
+                    moment(tournament.tournament_time, 'DD-MM-YYYY HH:mm:ss').subtract(
+                        15,
+                        'minutes'
+                    )
+                )
             ) {
                 const embed = new EmbedBuilder({
                     title: 'Moonbane Slayers Tournament',
