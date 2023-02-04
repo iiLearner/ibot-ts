@@ -39,7 +39,7 @@ export class Team {
 
     async createTeam(): Promise<void> {
         try {
-            const sql = `INSERT INTO teams (teamName, teamLeader, tID, teamCode, teamLeaderId, teamAvatar) VALUES ('${this.teamName}', '${this.teamLeader}', ${this.tID}, '${this.teamCode}', '${this.teamLeaderId}, '${this.teamAvatar}'')`;
+            const sql = `INSERT INTO teams (teamName, teamLeader, tID, teamCode, teamLeaderId, teamAvatar) VALUES ('${this.teamName}', '${this.teamLeader}', ${this.tID}, '${this.teamCode}', '${this.teamLeaderId}', '${this.teamAvatar}')`;
             await this.db.con.query(sql);
         } catch (err) {
             console.log(err);
