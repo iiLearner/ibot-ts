@@ -11,7 +11,7 @@ import { CustomClient } from '../extensions/custom-client.js';
 export class CheckInChecker implements Job {
     name = 'CheckInChecker';
     log = false;
-    schedule = '* * * * *';
+    schedule = '*/* * * * *';
 
     constructor(private client: CustomClient) {}
 

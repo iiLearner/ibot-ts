@@ -40,33 +40,6 @@ export class SignUpTeamModal implements Modal {
                 return;
             }
 
-            const currentTeamCount = await getTournamentTeams(tournament.id);
-            if (
-                (tournament.mode === 3 && currentTeamCount >= 20) ||
-                (tournament.mode === 2 && currentTeamCount >= 30)
-            ) {
-                const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament',
-                    description: `Sorry! The tournament is currently at full capacity!`,
-                    footer: {
-                        text: 'See something wrong? Contact a moderator!',
-                    },
-                    timestamp: Date.now(),
-                    color: resolveColor('#fe0c03'),
-                });
-                if (intr.replied || intr.deferred) {
-                    intr.editReply({
-                        embeds: [embed],
-                    });
-                } else {
-                    intr.reply({
-                        embeds: [embed],
-                        ephemeral: true,
-                    });
-                }
-                return;
-            }
-
             const playerName = intr.fields.getTextInputValue('ingame_name');
             const teamName = intr.fields.getTextInputValue('team_name');
             const playerid = intr.fields.getTextInputValue('ingame_id');
