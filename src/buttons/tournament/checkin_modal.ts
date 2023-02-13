@@ -7,7 +7,6 @@ import {
 } from 'discord.js';
 
 import { Button, ButtonDeferType } from '../button.js';
-import { getTournamentByMessage } from '../../tournament/Tournament.js';
 
 export class CheckinModal implements Button {
     public readonly ids = ['checkin_modal'];
@@ -19,10 +18,8 @@ export class CheckinModal implements Button {
         const modal = new ModalBuilder()
             .setCustomId('checkin_modal_response')
             .setTitle('Check In - Team Selection');
-        const messageId = intr.message.id;
-        const tournament = await getTournamentByMessage(messageId);
 
-        for (let index = 0; index < tournament.mode; index++) {
+        for (let index = 0; index < 3; index++) {
             const teamSelection = new TextInputBuilder()
                 .setCustomId(`team_selection_${index}`)
                 // The label is the prompt the user sees for this input

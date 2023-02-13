@@ -41,7 +41,7 @@ export class SignUpSoloModal implements Modal {
             }
 
             const currentTeamCount = await getTournamentTeams(tournament.id);
-            if (currentTeamCount >= 60) {
+            if (currentTeamCount >= 30) {
                 const embed = new EmbedBuilder({
                     title: 'Moonbane Slayers Tournament',
                     description: `Sorry! The tournament is currently at full capacity!`,

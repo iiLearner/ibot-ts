@@ -3,6 +3,7 @@ import {
     ButtonInteraction,
     Client,
     CommandInteraction,
+    EmbedBuilder,
     Events,
     Guild,
     Interaction,
@@ -32,6 +33,8 @@ import { SignUpTeamModal } from '../modal/tournaments/signup_team.js';
 import { SignUpModal } from '../modal/tournaments/signup.js';
 import { StartTournamentModal } from '../modal/tournaments/start_tournament.js';
 import { CheckIn } from '../buttons/tournament/checkin.js';
+import { TableBuilder } from '../utils/TableBuilder.js';
+import { DBConnection } from '../database/connect.js';
 
 const require = createRequire(import.meta.url);
 let Config = require('../../config/config.json');
@@ -95,45 +98,143 @@ export class Bot {
         //}
 
         this.ready = true;
-        // get rabbit channel
-        /*const channel = (await this.client.channels.fetch('1004295429082595328')) as TextChannel;
 
-        let lastmessage = '1069073060310818826';
-        for (let index = 0; index < 70; index++) {
-            const messages = await channel.messages.fetch({
-                limit: 100,
-                before: lastmessage,
-            });
-            lastmessage = messages.lastKey();
-            index = 0;
-            for (const message of messages.values()) {
-                // check message content
-                if (message.author.id != '981073848399187978') continue;
-                console.log(message.content, index);
-                index += 1;
-
-                if (
-                    message.content
-                        .toLowerCase()
-                        .includes('liam said hi and gave you a limited role: year of rabbit!') &&
-                    message.author.id === '981073848399187978'
-                ) {
-                    console.log(message.mentions.repliedUser);
-                    // get role
-                    const role = await message.guild?.roles.fetch('1059692364324671528');
-                    const user = message.mentions.repliedUser;
-
-                    // give user the role
-                    if (role && user) {
-                        const member = await message.guild?.members.fetch(user.id);
-                        await member?.roles.add(role);
-                    }
-                }
+        /*const placementToScore = (placement: number) => {
+            switch (placement) {
+                case 1:
+                    return 100;
+                case 2:
+                    return 80;
+                case 3:
+                    return 60;
+                case 4:
+                case 5:
+                case 6:
+                case 7:
+                case 8:
+                case 9:
+                case 10:
+                    return 30;
+                default:
+                    return 0;
             }
+        };
 
-            // wait 1 second
-            await new Promise(resolve => setTimeout(resolve, 5000));
-        }*/
+        const killsToScore = (kills: number) => kills * 15;
+
+        // lets post the leaderboard
+        const channel = (await this.client.channels.fetch('1064510367679664128')) as TextChannel;
+
+        const db = new DBConnection();
+        db.con.query(
+            'SELECT placement.gameID, placement.placement, teams.teamName, teams.teamID from placement, teams WHERE teams.teamID = placement.teamID AND teams.tID = 74 ORDER BY placement.ID',
+            (err, placements) => {
+                db.con.query(
+                    'SELECT kills.kills, teams.teamID, kills.gameID from players, kills, teams WHERE teams.tID = 74 AND teams.teamStatus = 2 and teams.teamID = players.teamID and players.ID = kills.playerID',
+                    (err, kills) => {
+                        // lets build the table
+                        const table = placements.map((placement: any) => {
+                            // loop for games
+                            const teamStats = [1, 2, 3].map(index => {
+                                const kills_ = kills.filter(
+                                    (kill: any) =>
+                                        kill.gameID === index && kill.teamID === placement.teamID
+                                );
+
+                                // sum kills
+                                const killsSum = kills_.reduce((acc: any, current: any) => {
+                                    return acc + current.kills;
+                                }, 0);
+
+                                // get placement for game id 1
+                                const gamePlacement = placements.find(
+                                    (placement_: any) =>
+                                        placement_.gameID === index &&
+                                        placement_.teamID === placement.teamID
+                                );
+                                const key = {
+                                    [`game${index}`]:
+                                        placementToScore(gamePlacement.placement) +
+                                        killsToScore(killsSum),
+                                };
+                                return {
+                                    key,
+                                };
+                            });
+
+                            return {
+                                team: placement.teamName,
+                                game1: teamStats[0].key.game1,
+                                game2: teamStats[1].key.game2,
+                                game3: teamStats[2].key.game3,
+                                total:
+                                    teamStats[0].key.game1 +
+                                    teamStats[1].key.game2 +
+                                    teamStats[2].key.game3,
+                            };
+                        });
+
+                        // remove duplicates by team name
+                        const table_ = table.reduce((acc: any, current: any) => {
+                            const x = acc.find((item: any) => item.team === current.team);
+                            if (!x) {
+                                return acc.concat([current]);
+                            } else {
+                                return acc;
+                            }
+                        }, []);
+
+                        // sort by total
+                        table_.sort((a: any, b: any) => b.total - a.total);
+
+                        const tableBuilder = new TableBuilder([
+                            {
+                                index: 0,
+                                label: 'Team',
+                                width: 20,
+                                field: 'team',
+                            },
+                            {
+                                index: 1,
+                                label: 'Match #1',
+                                width: 10,
+                                field: 'game1',
+                            },
+                            {
+                                index: 1,
+                                label: 'Match #2',
+                                width: 10,
+                                field: 'game2',
+                            },
+                            {
+                                index: 1,
+                                label: 'Match #3',
+                                width: 10,
+                                field: 'game3',
+                            },
+                            {
+                                index: 2,
+                                label: 'Total',
+                                width: 10,
+                                field: 'total',
+                            },
+                        ]);
+
+                        table_.forEach((row: any) => {
+                            tableBuilder.addRows(row);
+                        });
+
+                        const embed1 = new EmbedBuilder({
+                            title: 'Moonbane Slayers Tournament - Results',
+                            description: tableBuilder.build(),
+                        });
+                        channel.send({
+                            embeds: [embed1],
+                        });
+                    }
+                );
+            }
+        );*/
 
         Logger.info(Logs.info.clientReady);
     }
