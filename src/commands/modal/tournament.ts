@@ -163,7 +163,7 @@ export class TournamentCommand implements Command {
     getPartyLimit(mode: string): string {
         switch (mode) {
             case '1':
-                return '60 players (60 teams of 1)';
+                return '30 players (30 teams of 1)';
             case '2':
                 return '60 players (30 teams of 2) +1 sub';
             case '3':
