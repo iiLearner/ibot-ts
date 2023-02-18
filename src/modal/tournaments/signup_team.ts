@@ -14,10 +14,10 @@ export class SignUpTeamModal implements Modal {
             const teamName = intr.fields.getTextInputValue('team_name');
             const playerid = intr.fields.getTextInputValue('ingame_id');
             const tournament = await getTournamentByMessage(messageId);
-            if (tournament.isTournamentClosed()) return tournament.tournamentClosed(intr);
+            if (tournament.isTournamentClosed()) return await tournament.tournamentClosed(intr);
 
             const team = await getTeamByCode(teamName);
-            if (await team.isPlayerInTeam()) return team.playerInTeam(intr, tournament);
+            if (await team.isPlayerInTeam()) return await team.playerInTeam(intr, tournament);
 
             const teamMembers = await getTeamMembers(teamName);
             let teamMembersNames = '';
@@ -34,7 +34,7 @@ export class SignUpTeamModal implements Modal {
             }
 
             if (team.isTeamFull(tournament, teamMembers))
-                return team.teamFull(intr, tournament, teamName);
+                return await team.teamFull(intr, tournament, teamName);
 
             const player = new Player(
                 intr.user.id,

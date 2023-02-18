@@ -1,8 +1,9 @@
+import { resolveColor, EmbedBuilder, TextChannel } from 'discord.js';
 import moment from 'moment';
+
+import { CustomClient } from '../extensions/custom-client.js';
 import { getTournamentsByStatus } from '../tournament/Tournament.js';
 import { Job } from './job.js';
-import { EmbedBuilder, TextChannel, resolveColor } from 'discord.js';
-import { CustomClient } from '../extensions/custom-client.js';
 
 export class CheckInChecker implements Job {
     name = 'CheckInChecker';

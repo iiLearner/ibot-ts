@@ -11,8 +11,8 @@ export class SignUpModal implements Modal {
         try {
             const messageId = intr.message.id;
             const tournament = await getTournamentByMessage(messageId);
-            if (tournament.isTournamentClosed()) return tournament.tournamentClosed(intr);
-            if (tournament.isTournamentFull()) return tournament.tournamentFull(intr);
+            if (tournament.isTournamentClosed()) return await tournament.tournamentClosed(intr);
+            if (tournament.isTournamentFull()) return await tournament.tournamentFull(intr);
 
             const playerName = intr.fields.getTextInputValue('ingame_name');
             const teamName = intr.fields.getTextInputValue('team_name');
@@ -25,8 +25,8 @@ export class SignUpModal implements Modal {
                 intr.user.avatarURL() ?? 'https://i.imgur.com/V4FP5W7.png'
             );
 
-            if (await team.isTeamNameTaken()) return team.teamNameTaken(intr, tournament);
-            if (await team.isPlayerInTeam()) return team.playerInTeam(intr, tournament);
+            if (await team.isTeamNameTaken()) return await team.teamNameTaken(intr, tournament);
+            if (await team.isPlayerInTeam()) return await team.playerInTeam(intr, tournament);
 
             await team.createTeam();
             await team.getLastTeamInfo();
