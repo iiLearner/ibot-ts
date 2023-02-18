@@ -1,4 +1,9 @@
+import { EmbedBuilder, ModalSubmitInteraction, resolveColor, TextChannel } from 'discord.js';
+import moment from 'moment';
+
 import { DBConnection } from '../database/connect.js';
+import { InteractionUtils } from '../utils/interaction-utils.js';
+import { getTournamentTeams, Team } from './Team.js';
 
 export class Tournament {
     id: number | null;
@@ -13,6 +18,12 @@ export class Tournament {
     message_id: string;
     message_id_ci: string;
     mode: number;
+    platform: string;
+    teams_limit: number;
+    subs: number;
+    registration_offset: number;
+    number_of_games: number;
+    streamer: string;
     created: string | null;
     db: DBConnection;
 
@@ -26,6 +37,12 @@ export class Tournament {
         role_id: string,
         tournament_time: string,
         mode: number,
+        platform: string,
+        subs: number,
+        teams_limit: number,
+        registration_offset: number,
+        number_of_games: number,
+        streamer?: string,
         id?: number,
         message_id_ci?: string,
         created?: string,
@@ -40,6 +57,12 @@ export class Tournament {
         this.message_id = message_id;
         this.role_id = role_id;
         this.mode = mode;
+        this.platform = platform;
+        this.teams_limit = teams_limit;
+        this.subs = subs;
+        this.registration_offset = registration_offset;
+        this.number_of_games = number_of_games;
+        this.streamer = streamer || '';
         this.id = id || null;
         this.message_id_ci = message_id_ci || null;
         this.created = created || null;
@@ -76,36 +99,162 @@ export class Tournament {
             }
         });
     }
-}
-
-export async function updateTournamentStatus(tournament: number, status: number): Promise<void> {
-    return await new Promise((resolve, reject) => {
-        try {
-            const db = new DBConnection();
-            const sql = `UPDATE tournaments SET status = ${status} WHERE ID = ${tournament}`;
-            db.con.query(sql, (err, result) => {
-                if (err) reject(err);
-                resolve(result);
-            });
-        } catch (err) {
-            reject(err);
+    isTournamentClosed(): boolean {
+        const registrationClose = moment(this.tournament_time, 'DD-MM-YYYY HH:mm:ss').subtract(
+            this.registration_offset || 2,
+            'hours'
+        );
+        if (moment().isAfter(registrationClose)) {
+            return true;
         }
-    });
-}
+        return false;
+    }
 
-export async function updateTournamentCi(tournament: number, ci: string): Promise<void> {
-    return await new Promise((resolve, reject) => {
-        try {
-            const db = new DBConnection();
-            const sql = `UPDATE tournaments SET message_id_ci = ${ci} WHERE ID = ${tournament}`;
-            db.con.query(sql, (err, result) => {
-                if (err) reject(err);
-                resolve(result);
-            });
-        } catch (err) {
-            reject(err);
+    async tournamentClosed(intr: ModalSubmitInteraction): Promise<void> {
+        const embed = new EmbedBuilder({
+            title: `${this.name} Tournament`,
+            description: `The registration for this tournament has closed!`,
+            footer: {
+                text: 'See something wrong? Contact a moderator!',
+            },
+            timestamp: Date.now(),
+            color: resolveColor('#fe0c03'),
+        });
+
+        await InteractionUtils.send(intr, embed, true);
+    }
+
+    async isTournamentFull(): Promise<boolean> {
+        const currentTeamCount = await getTournamentTeams(this.id);
+        if (currentTeamCount >= this.teams_limit) {
+            return true;
         }
-    });
+        return false;
+    }
+
+    async tournamentFull(intr: ModalSubmitInteraction): Promise<void> {
+        const embed = new EmbedBuilder({
+            title: `${this.name} Tournament`,
+            description: `Sorry! The tournament is currently at full capacity!`,
+            footer: {
+                text: 'See something wrong? Contact a moderator!',
+            },
+            timestamp: Date.now(),
+            color: resolveColor('#fe0c03'),
+        });
+        await InteractionUtils.send(intr, embed, true);
+    }
+
+    async tournamentSuccessSolo(intr: ModalSubmitInteraction): Promise<void> {
+        // send the user a messsage
+        await this.sendSuccessMessage(intr);
+
+        // solo
+        if (this.mode === 1) {
+            // send info message
+            (intr.client.channels.cache.get(this.log_channel) as TextChannel).send({
+                content: `<:like:805637215405211709> | Player \`${intr.user.tag}\` has signed up for the tournament!`,
+            });
+
+            // send message to user
+            intr.user.send({
+                content: `<@${intr.user.id}>! You have successfully signed up for the solo tournament!`,
+            });
+        }
+    }
+
+    async tournamentSuccessTeam(
+        intr: ModalSubmitInteraction,
+        team: Team,
+        playerName: string,
+        type: number,
+        teamMembersNames?: string
+    ): Promise<void> {
+        // send the user a messsage
+        await this.sendSuccessMessage(intr, team.teamCode);
+
+        if (type === 1) {
+            // send info message
+            await (intr.client.channels.cache.get(this.log_channel) as TextChannel).send({
+                content: `<:guud:824542470015680542> | Player \`${intr.user.tag}\` has joined the team \`${team.teamName}\`!`,
+            });
+
+            // send message to user
+            await intr.user.send({
+                content: `<@${intr.user.id}>! You have successfully joined the team \`${team.teamName}\` for the tournament! Find below your team details\`\`\`Team name: ${team.teamName}\nTeam captain: ${team.teamLeader}\nTeam Code: ${team.teamCode}\nTeam Members: ${teamMembersNames}\`\`\`Share the team code with your teammates so they can join your team!`,
+            });
+
+            // send message to team leader
+            const teamLeader = await intr.client.users.fetch(team.teamLeaderId);
+            await teamLeader.send({
+                content: `<@${team.teamLeaderId}>! Player \`${intr.user.tag} (${playerName})\` has joined your team \`${team.teamName}\`! Find below your team details\`\`\`Team name: ${team.teamName}\nTeam captain: ${team.teamLeader}\nTeam Code: ${team.teamCode}\nTeam Members: ${teamMembersNames}\nTournament Time: ${this.tournament_time}\`\`\`Share the team code with your teammates so they can join your team!`,
+            });
+        } else {
+            // send info message
+            (intr.client.channels.cache.get(this.log_channel) as TextChannel).send({
+                content: `<:guud:824542470015680542> | Team Leader \`${intr.user.tag}\` has signed up for the tournament with team \`${team.teamName}\`!`,
+            });
+
+            // send message to user
+            intr.user.send({
+                content: `<@${intr.user.id}>! You have successfully signed up for the tournament! Find below your tournament details\`\`\`Team name: ${team.teamName}\nTeam captain: ${intr.user.tag}\nTeam Code: ${team.teamCode}\nTournament Time: ${this.tournament_time}\`\`\`Share the team code with your teammates so they can join your team!`,
+            });
+        }
+    }
+
+    private async sendSuccessMessage(
+        intr: ModalSubmitInteraction,
+        teamCode?: string
+    ): Promise<void> {
+        // send the user a messsage
+        const embed = new EmbedBuilder({
+            title: `${this.name} Tournament - Registration`,
+            description: `You have successfully signed up for the tournament${
+                teamCode
+                    ? '\nTeam Code: `' +
+                      teamCode +
+                      '`\nShare the team code with your teammates so they can join your team!'
+                    : ''
+            }`,
+            footer: {
+                text: 'You will be notified when the tournament starts!',
+            },
+            timestamp: Date.now(),
+            color: resolveColor('#008080'),
+        });
+
+        await InteractionUtils.send(intr, embed, true);
+    }
+
+    async updateTournamentStatus(status: number): Promise<void> {
+        return await new Promise((resolve, reject) => {
+            try {
+                const db = new DBConnection();
+                const sql = `UPDATE tournaments SET status = ${status} WHERE ID = ${this.id}`;
+                db.con.query(sql, (err, result) => {
+                    if (err) reject(err);
+                    resolve(result);
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async updateTournamentCi(ci: string): Promise<void> {
+        return await new Promise((resolve, reject) => {
+            try {
+                const db = new DBConnection();
+                const sql = `UPDATE tournaments SET message_id_ci = ${ci} WHERE ID = ${this.id}`;
+                db.con.query(sql, (err, result) => {
+                    if (err) reject(err);
+                    resolve(result);
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
 }
 
 export async function getTournamentByMessage(message_id: string): Promise<Tournament> {
@@ -129,6 +278,11 @@ export async function getTournamentByMessage(message_id: string): Promise<Tourna
                     result[0].role_id,
                     result[0].tournament_time,
                     result[0].mode,
+                    result[0].platform,
+                    result[0].subs,
+                    result[0].registration_offset,
+                    result[0].number_of_games,
+                    result[0].streamer,
                     result[0].ID,
                     result[0].message_id_ci,
                     result[0].created
@@ -164,6 +318,12 @@ export async function getTournamentsByStatus(status: number): Promise<Tournament
                             tournament.role_id,
                             tournament.tournament_time,
                             tournament.mode,
+                            tournament.platform,
+                            tournament.subs,
+                            tournament.teams_limit,
+                            tournament.registration_offset,
+                            tournament.number_of_games,
+                            tournament.streamer,
                             tournament.ID,
                             tournament.message_id_ci,
                             tournament.created,
@@ -176,4 +336,17 @@ export async function getTournamentsByStatus(status: number): Promise<Tournament
             resolve(err);
         }
     });
+}
+
+export async function sendErrorMessage(intr: any, error: any): Promise<void> {
+    const embed = new EmbedBuilder({
+        title: `An error occured!`,
+        description: `An unknown error happened, please report to the dev:  ${error}`,
+        footer: {
+            text: 'Need help? Contact a moderator!',
+        },
+        timestamp: Date.now(),
+        color: resolveColor('#fe0c03'),
+    });
+    await InteractionUtils.send(intr, embed, true);
 }

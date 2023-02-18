@@ -1,7 +1,10 @@
+import { EmbedBuilder, ModalSubmitInteraction, resolveColor } from 'discord.js';
 import { v4 as uuidv4 } from 'uuid';
 
 import { DBConnection } from '../database/connect.js';
+import { InteractionUtils } from '../utils/interaction-utils.js';
 import { Player } from './Player.js';
+import { Tournament } from './Tournament.js';
 
 export class Team {
     teamId: number | null;
@@ -61,19 +64,10 @@ export class Team {
         });
     }
 
-    async getTeamByName(teamName: string, tournamentID: number): Promise<void> {
-        try {
-            const sql = `SELECT * FROM teams WHERE teamName = '${teamName}' AND tID = '${tournamentID}'`;
-            const result = await this.db.con.query(sql);
-        } catch (err) {
-            console.log(err);
-        }
-    }
-
-    async isTeamNameTaken(teamName: string, tournamentID: number): Promise<boolean> {
+    async isTeamNameTaken(): Promise<boolean> {
         return await new Promise((resolve, reject) => {
             try {
-                const sql = `SELECT * FROM teams WHERE teamName = '${teamName}' AND tID = '${tournamentID}'`;
+                const sql = `SELECT * FROM teams WHERE teamName = '${this.teamName}' AND tID = '${this.tID}'`;
                 this.db.con.query(sql, (err, result) => {
                     if (err) reject(err);
                     if (result.length > 0) {
@@ -88,10 +82,24 @@ export class Team {
         });
     }
 
-    async isPlayerInTeam(tournamentID: number, userid: string): Promise<boolean> {
+    async teamNameTaken(intr: ModalSubmitInteraction, tournament: Tournament): Promise<void> {
+        const embed = new EmbedBuilder({
+            title: `${tournament.name} Tournament`,
+            description: `The team name \`${this.teamName}\` is already taken, please try again with a different name.`,
+            footer: {
+                text: 'See something wrong? Contact a moderator!',
+            },
+            timestamp: Date.now(),
+            color: resolveColor('#fe0c03'),
+        });
+
+        await InteractionUtils.send(intr, embed, true);
+    }
+
+    async isPlayerInTeam(): Promise<boolean> {
         return await new Promise((resolve, reject) => {
             try {
-                const sql = `SELECT * FROM teams, players WHERE tID = '${tournamentID}' AND players.teamID = teams.teamID AND players.userid = '${userid}'`;
+                const sql = `SELECT * FROM teams, players WHERE tID = '${this.tID}' AND players.teamID = teams.teamID AND players.userid = '${this.teamLeaderId}'`;
                 this.db.con.query(sql, (err, result) => {
                     if (err) reject(err);
                     if (result.length > 0) {
@@ -99,6 +107,68 @@ export class Team {
                     } else {
                         resolve(false);
                     }
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    async playerInTeam(intr: ModalSubmitInteraction, tournament: Tournament): Promise<void> {
+        const embed = new EmbedBuilder({
+            title: `${tournament} Tournament`,
+            description: `You have already signed up for the tournament!`,
+            footer: {
+                text: 'See something wrong? Contact a moderator!',
+            },
+            timestamp: Date.now(),
+            color: resolveColor('#fe0c03'),
+        });
+        await InteractionUtils.send(intr, embed, true);
+    }
+
+    isTeamFull(tournament: Tournament, teamMembers: Player[]): boolean {
+        if (tournament.mode === 1) {
+            if (teamMembers.length > 1) {
+                return true;
+            }
+        } else if (tournament.mode === 2) {
+            if (teamMembers.length > 2 + tournament.subs) {
+                return true;
+            }
+        } else if (tournament.mode === 3) {
+            if (teamMembers.length > 3 + tournament.subs) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    async teamFull(
+        intr: ModalSubmitInteraction,
+        tournament: Tournament,
+        teamName: string
+    ): Promise<void> {
+        const embed = new EmbedBuilder({
+            title: `${tournament.name} Tournament`,
+            description: `The team ${teamName} is already full!`,
+            footer: {
+                text: "think it's a mistake? Contact a moderator!",
+            },
+            timestamp: Date.now(),
+            color: resolveColor('#fe0c03'),
+        });
+        await InteractionUtils.send(intr, embed, true);
+    }
+
+    async updateTeamStatus(status: number, selection: string): Promise<void> {
+        return await new Promise((resolve, reject) => {
+            try {
+                const db = new DBConnection();
+                const sql = `UPDATE teams SET teamStatus = ${status}, teamSelection = '${selection}' WHERE teamID = ${this.teamId}`;
+                db.con.query(sql, (err, result) => {
+                    if (err) reject(err);
+                    resolve(result);
                 });
             } catch (err) {
                 reject(err);
@@ -132,25 +202,6 @@ export async function getTeamByCode(code: string): Promise<Team> {
             });
         } catch (err) {
             resolve(err);
-        }
-    });
-}
-
-export async function updateTeamStatus(
-    team: number,
-    status: number,
-    selection: string
-): Promise<void> {
-    return await new Promise((resolve, reject) => {
-        try {
-            const db = new DBConnection();
-            const sql = `UPDATE teams SET teamStatus = ${status}, teamSelection = '${selection}' WHERE teamID = ${team}`;
-            db.con.query(sql, (err, result) => {
-                if (err) reject(err);
-                resolve(result);
-            });
-        } catch (err) {
-            reject(err);
         }
     });
 }

@@ -1,4 +1,4 @@
-import { ButtonInteraction, EmbedBuilder, TextChannel, resolveColor } from 'discord.js';
+import { ButtonInteraction, resolveColor, EmbedBuilder, TextChannel } from 'discord.js';
 import moment from 'moment';
 
 import { EventData } from '../../models/internal-models.js';
@@ -8,7 +8,8 @@ import {
     removePlayerFromTeam,
     removeTeam,
 } from '../../tournament/Team.js';
-import { getTournamentByMessage } from '../../tournament/Tournament.js';
+import { getTournamentByMessage, sendErrorMessage } from '../../tournament/Tournament.js';
+import { InteractionUtils } from '../../utils/interaction-utils.js';
 import { Button, ButtonDeferType } from '../button.js';
 
 export class SignOff implements Button {
@@ -29,7 +30,7 @@ export class SignOff implements Button {
             // check if registrations are closed
             if (moment().isAfter(registrationClose)) {
                 const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament',
+                    title: `${tournament.name} Tournament`,
                     description: `Registrations are closed, you can't sign off anymore!`,
                     footer: {
                         text: 'See something wrong? Contact a moderator!',
@@ -37,16 +38,7 @@ export class SignOff implements Button {
                     timestamp: Date.now(),
                     color: resolveColor('#fe0c03'),
                 });
-                if (intr.replied || intr.deferred) {
-                    intr.editReply({
-                        embeds: [embed],
-                    });
-                } else {
-                    intr.reply({
-                        embeds: [embed],
-                        ephemeral: true,
-                    });
-                }
+                await InteractionUtils.send(intr, embed, true);
                 return;
             }
 
@@ -54,7 +46,7 @@ export class SignOff implements Button {
             const team = await getTeamByUserId(intr.user.id, tournament.id);
             if (team === null) {
                 const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament',
+                    title: `${tournament.name} Tournament`,
                     description: `You are not registered for this tournament!`,
                     footer: {
                         text: 'See something wrong? Contact a moderator!',
@@ -62,16 +54,7 @@ export class SignOff implements Button {
                     timestamp: Date.now(),
                     color: resolveColor('#fe0c03'),
                 });
-                if (intr.replied || intr.deferred) {
-                    intr.editReply({
-                        embeds: [embed],
-                    });
-                } else {
-                    intr.reply({
-                        embeds: [embed],
-                        ephemeral: true,
-                    });
-                }
+                await InteractionUtils.send(intr, embed, true);
                 return;
             }
 
@@ -80,7 +63,7 @@ export class SignOff implements Button {
                 await removePlayerFromTeam(intr.user.id, team.tID);
 
                 const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament',
+                    title: `${tournament.name} Tournament`,
                     description: `You have been removed from the team!`,
                     footer: {
                         text: 'You are no longer registered to the tournament!',
@@ -88,16 +71,7 @@ export class SignOff implements Button {
                     timestamp: Date.now(),
                     color: resolveColor('#008080'),
                 });
-                if (intr.replied || intr.deferred) {
-                    intr.editReply({
-                        embeds: [embed],
-                    });
-                } else {
-                    intr.reply({
-                        embeds: [embed],
-                        ephemeral: true,
-                    });
-                }
+                await InteractionUtils.send(intr, embed, true);
 
                 // send info message
                 await (intr.client.channels.cache.get(tournament.log_channel) as TextChannel).send({
@@ -141,7 +115,7 @@ export class SignOff implements Button {
                     });
 
                     const embed = new EmbedBuilder({
-                        title: 'Moonbane Slayers Tournament',
+                        title: `${tournament.name} Tournament`,
                         description: `You have successfully disbanded your team!`,
                         footer: {
                             text: 'You are no longer registered to the tournament!',
@@ -149,16 +123,7 @@ export class SignOff implements Button {
                         timestamp: Date.now(),
                         color: resolveColor('#008080'),
                     });
-                    if (intr.replied || intr.deferred) {
-                        intr.editReply({
-                            embeds: [embed],
-                        });
-                    } else {
-                        intr.reply({
-                            embeds: [embed],
-                            ephemeral: true,
-                        });
-                    }
+                    await InteractionUtils.send(intr, embed, true);
                 } else {
                     // send info message
                     await (
@@ -173,7 +138,7 @@ export class SignOff implements Button {
                     });
 
                     const embed = new EmbedBuilder({
-                        title: 'Moonbane Slayers Tournament',
+                        title: `${tournament.name} Tournament`,
                         description: `You have successfully left the tournament!`,
                         footer: {
                             text: 'You are no longer registered to the tournament!',
@@ -181,38 +146,15 @@ export class SignOff implements Button {
                         timestamp: Date.now(),
                         color: resolveColor('#008080'),
                     });
-                    if (intr.replied || intr.deferred) {
-                        intr.editReply({
-                            embeds: [embed],
-                        });
-                    } else {
-                        intr.reply({
-                            embeds: [embed],
-                            ephemeral: true,
-                        });
-                    }
+                    await InteractionUtils.send(intr, embed, true);
                 }
             }
+
+            //remove user role
+            const role = await intr.guild.roles.fetch(tournament.role_id);
+            if (role) await (await intr.guild.members.fetch(intr.user.id)).roles.remove(role);
         } catch (error) {
-            const embed = new EmbedBuilder({
-                title: 'Moonbane Slayers Tournament',
-                description: `An unknown error happened, please report to the dev:  ${error}`,
-                footer: {
-                    text: 'Need help? Contact a moderator!',
-                },
-                timestamp: Date.now(),
-                color: resolveColor('#fe0c03'),
-            });
-            if (intr.replied || intr.deferred) {
-                intr.editReply({
-                    embeds: [embed],
-                });
-            } else {
-                intr.reply({
-                    embeds: [embed],
-                    ephemeral: true,
-                });
-            }
+            sendErrorMessage(error, intr);
         }
     }
 

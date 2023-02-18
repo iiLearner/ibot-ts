@@ -1,15 +1,18 @@
 import {
+    ActionRowBuilder,
     ChatInputCommandInteraction,
     EmbedBuilder,
+    ModalBuilder,
     PermissionsString,
     resolveColor,
+    TextInputBuilder,
+    TextInputStyle,
 } from 'discord.js';
 import moment from 'moment-timezone';
 
 import { EventData } from '../../models/internal-models.js';
-import { Tournament } from '../../tournament/Tournament.js';
+import { InteractionUtils } from '../../utils/interaction-utils.js';
 import { Command, CommandDeferType } from '../index.js';
-import { TextChannel } from 'discord.js';
 
 export class TournamentCommand implements Command {
     public names = ['tournament'];
@@ -19,24 +22,19 @@ export class TournamentCommand implements Command {
         let args = {
             mode: intr.options.getString('mode'),
             time: intr.options.getString('date_time'),
+            log_channel: intr.options.getString('log_channel'),
             streamer: intr.options.getString('streamer'),
+            registraionclose_offset: intr.options.getString('registraionclose_offset'),
         };
 
         // check permissions
         if (intr.user.id !== '266947686194741248') {
-            if (intr.replied || intr.deferred) {
-                await intr.followUp({
-                    content: 'You do not have permission to use this command',
-                    ephemeral: true,
-                });
-                return;
-            } else {
-                await intr.reply({
-                    content: 'You do not have permission to use this command',
-                    ephemeral: true,
-                });
-                return;
-            }
+            await InteractionUtils.send(
+                intr,
+                'You do not have permission to use this command',
+                true
+            );
+            return;
         }
 
         const datetime = moment(args.time, 'DD-MM-YYYY HH:mm:ss');
@@ -74,14 +72,14 @@ export class TournamentCommand implements Command {
                 },
                 {
                     name: 'Time',
-                    value: datetime.format('dddd, MMMM Do YYYY, h:mm:ss a [GMT+1]'),
+                    value: datetime.format('dddd, MMMM Do YYYY, h:mm:ss a [EST]'),
                     inline: false,
                 },
                 {
                     name: 'Registrations close',
                     value: datetime
                         .subtract(120, 'minutes')
-                        .format('dddd, MMMM Do YYYY, h:mm:ss a [GMT+1]'),
+                        .format('dddd, MMMM Do YYYY, h:mm:ss a [EST]'),
                     inline: false,
                 },
                 {
@@ -110,7 +108,44 @@ export class TournamentCommand implements Command {
             });
         }
 
-        intr.deferReply();
+        //intr.deferReply();
+        // prepare modal
+        const modal = new ModalBuilder()
+            .setCustomId('tournament_create')
+            .setTitle('Create a tourney');
+
+        const tName = new TextInputBuilder()
+            .setCustomId(`tournament_create_name`)
+            // The label is the prompt the user sees for this input
+            .setLabel(`Name`)
+            // Short means only a single line of text
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder(`Tournament name`)
+            .setMinLength(30)
+            .setMaxLength(500);
+        const rowName = new ActionRowBuilder().addComponents(
+            tName
+        ) as ActionRowBuilder<TextInputBuilder>;
+        modal.addComponents(rowName);
+
+        const tDesccription = new TextInputBuilder()
+            .setCustomId(`tournament_create_description`)
+            // The label is the prompt the user sees for this input
+            .setLabel(`Description`)
+            // Short means only a single line of text
+            .setStyle(TextInputStyle.Paragraph)
+            .setPlaceholder(`Enter a short description for the tournament.`)
+            .setMinLength(30)
+            .setMaxLength(500);
+        const row = new ActionRowBuilder().addComponents(
+            tDesccription
+        ) as ActionRowBuilder<TextInputBuilder>;
+        modal.addComponents(row);
+
+        // Show the modal to the user
+        //await intr.showModal(modal);
+        console.log(intr);
+
         const role = intr.guild.roles.cache.get('1064512125617328158');
         const content = {
             content: `${role}`,
@@ -131,7 +166,7 @@ export class TournamentCommand implements Command {
                 mentionable: false,
             });
 
-            const tournament = new Tournament(
+            /*const tournament = new Tournament(
                 'Moonbane Slayers Tournament',
                 intr.user.id,
                 intr.guild.id,
@@ -140,9 +175,13 @@ export class TournamentCommand implements Command {
                 msg.id,
                 TournamentRole.id,
                 datetime.add('120', 'minutes').format('DD-MM-YYYY HH:mm:ss'),
-                Number(args.mode)
-            );
-            await tournament.createTournament();
+                Number(args.mode),
+                'ALL',
+                2,
+                2,
+                3
+            );*/
+            //await tournament.createTournament();
             intr.deleteReply();
         }
     }

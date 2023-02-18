@@ -2,7 +2,7 @@ import { TextChannel } from 'discord.js';
 import moment from 'moment';
 
 import { CustomClient } from '../extensions/custom-client.js';
-import { getTournamentsByStatus, updateTournamentStatus } from '../tournament/Tournament.js';
+import { getTournamentsByStatus } from '../tournament/Tournament.js';
 import { Job } from './job.js';
 
 export class DeleterChecker implements Job {
@@ -56,7 +56,7 @@ export class DeleterChecker implements Job {
                     console.log("Couldn't delete the role");
                 }
 
-                await updateTournamentStatus(tournament.id, 4);
+                await tournament.updateTournamentStatus(4);
 
                 // send a message to the log channel
                 const logChannel = this.client.channels.cache.get(

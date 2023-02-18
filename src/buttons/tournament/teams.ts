@@ -2,7 +2,8 @@ import { ButtonInteraction, EmbedBuilder, resolveColor } from 'discord.js';
 
 import { EventData } from '../../models/internal-models.js';
 import { getTournamentTeamsDetailed } from '../../tournament/Team.js';
-import { getTournamentByMessage } from '../../tournament/Tournament.js';
+import { getTournamentByMessage, sendErrorMessage } from '../../tournament/Tournament.js';
+import { InteractionUtils } from '../../utils/interaction-utils.js';
 import { Button, ButtonDeferType } from '../button.js';
 
 type teamDetails = {
@@ -25,7 +26,7 @@ export class TournametTeams implements Button {
 
             if (teamsDetails === null || teamsDetails.length === 0) {
                 const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament - Teams',
+                    title: `${tournament.name} Tournament - Teams`,
                     description: 'No teams',
                     footer: {
                         text:
@@ -36,21 +37,12 @@ export class TournametTeams implements Button {
                     timestamp: Date.now(),
                     color: resolveColor('#6e4c70'),
                 });
-                if (intr.replied || intr.deferred) {
-                    await intr.followUp({
-                        embeds: [embed],
-                    });
-                } else {
-                    await intr.reply({
-                        embeds: [embed],
-                        ephemeral: true,
-                    });
-                }
+                await InteractionUtils.send(intr, embed, true);
                 return;
             }
 
             const embed = new EmbedBuilder({
-                title: 'Moonbane Slayers Tournament - Teams',
+                title: `${tournament.name} Tournament - Teams`,
                 footer: {
                     text:
                         'Current teams: ' +
@@ -122,16 +114,7 @@ export class TournametTeams implements Button {
                 });
             }
         } catch (error) {
-            if (intr.replied || intr.deferred) {
-                intr.editReply({
-                    content: `An unknown error happened, please report to the dev:  ${error}`,
-                });
-            } else {
-                intr.reply({
-                    content: `An unknown error happened, please report to the dev:  ${error}`,
-                    ephemeral: true,
-                });
-            }
+            sendErrorMessage(intr, error);
         }
     }
 

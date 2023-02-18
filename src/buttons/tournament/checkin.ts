@@ -1,16 +1,11 @@
-import {
-    ButtonInteraction,
-    EmbedBuilder,
-    ModalSubmitInteraction,
-    TextChannel,
-    resolveColor,
-} from 'discord.js';
+import { EmbedBuilder, ModalSubmitInteraction, resolveColor, TextChannel } from 'discord.js';
 import moment from 'moment';
 
-import { getTeamByUserId, updateTeamStatus } from '../../tournament/Team.js';
-import { getTournamentByMessage } from '../../tournament/Tournament.js';
-import { Button, ButtonDeferType } from '../button.js';
 import { Modal } from '../../modal/modal.js';
+import { getTeamByUserId } from '../../tournament/Team.js';
+import { getTournamentByMessage, sendErrorMessage } from '../../tournament/Tournament.js';
+import { InteractionUtils } from '../../utils/interaction-utils.js';
+import { ButtonDeferType } from '../button.js';
 
 export class CheckIn implements Modal {
     public readonly ids = ['checkin_modal_response'];
@@ -38,7 +33,7 @@ export class CheckIn implements Modal {
                 )
             ) {
                 const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament',
+                    title: `${tournament.name} Tournament`,
                     description: `Checkin is currently not available!`,
                     footer: {
                         text: 'See something wrong? Contact a moderator!',
@@ -46,16 +41,7 @@ export class CheckIn implements Modal {
                     timestamp: Date.now(),
                     color: resolveColor('#fe0c03'),
                 });
-                if (intr.replied || intr.deferred) {
-                    intr.editReply({
-                        embeds: [embed],
-                    });
-                } else {
-                    intr.reply({
-                        embeds: [embed],
-                        ephemeral: true,
-                    });
-                }
+                await InteractionUtils.send(intr, embed, true);
                 return;
             }
 
@@ -63,7 +49,7 @@ export class CheckIn implements Modal {
             const team = await getTeamByUserId(intr.user.id, tournament.id);
             if (team === null) {
                 const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament',
+                    title: `${tournament.name} Tournament`,
                     description: `You are not registered for this tournament!`,
                     footer: {
                         text: 'See something wrong? Contact a moderator!',
@@ -71,23 +57,14 @@ export class CheckIn implements Modal {
                     timestamp: Date.now(),
                     color: resolveColor('#fe0c03'),
                 });
-                if (intr.replied || intr.deferred) {
-                    intr.editReply({
-                        embeds: [embed],
-                    });
-                } else {
-                    intr.reply({
-                        embeds: [embed],
-                        ephemeral: true,
-                    });
-                }
+                await InteractionUtils.send(intr, embed, true);
                 return;
             }
 
             // check if the user is team captain
             if (team.teamLeaderId !== intr.user.id) {
                 const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament',
+                    title: `${tournament.name} Tournament`,
                     description: `You are not the team captain!`,
                     footer: {
                         text: 'Only the team captain can check in!',
@@ -95,23 +72,14 @@ export class CheckIn implements Modal {
                     timestamp: Date.now(),
                     color: resolveColor('#008080'),
                 });
-                if (intr.replied || intr.deferred) {
-                    intr.editReply({
-                        embeds: [embed],
-                    });
-                } else {
-                    intr.reply({
-                        embeds: [embed],
-                        ephemeral: true,
-                    });
-                }
+                await InteractionUtils.send(intr, embed, true);
                 return;
             }
 
             // check if the team is already checked in
             if (team.teamStatus != 1) {
                 const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament',
+                    title: `${tournament.name} Tournament`,
                     description: `Your team is already checked in!`,
                     footer: {
                         text: 'No further action is required!',
@@ -119,16 +87,7 @@ export class CheckIn implements Modal {
                     timestamp: Date.now(),
                     color: resolveColor('#008080'),
                 });
-                if (intr.replied || intr.deferred) {
-                    intr.editReply({
-                        embeds: [embed],
-                    });
-                } else {
-                    intr.reply({
-                        embeds: [embed],
-                        ephemeral: true,
-                    });
-                }
+                await InteractionUtils.send(intr, embed, true);
                 return;
             }
 
@@ -148,10 +107,10 @@ export class CheckIn implements Modal {
             formattedTeams += '}';
 
             // checkin the team
-            await updateTeamStatus(team.teamId, 2, formattedTeams);
+            await team.updateTeamStatus(2, formattedTeams);
 
             const embed = new EmbedBuilder({
-                title: 'Moonbane Slayers Tournament',
+                title: `${tournament.name} Tournament`,
                 description: `You have successfully checked in your team \`${team.teamName}\`!`,
                 footer: {
                     text: 'You will be notified when the tournament starts!',
@@ -159,43 +118,14 @@ export class CheckIn implements Modal {
                 timestamp: Date.now(),
                 color: resolveColor('#008080'),
             });
-            if (intr.replied || intr.deferred) {
-                intr.editReply({
-                    embeds: [embed],
-                });
-            } else {
-                intr.reply({
-                    embeds: [embed],
-                    ephemeral: true,
-                });
-            }
+            await InteractionUtils.send(intr, embed, true);
 
             // send info message
-            await (intr.client.channels.cache.get(tournament.log_channel) as TextChannel).send({
+            await(intr.client.channels.cache.get(tournament.log_channel) as TextChannel).send({
                 content: `<:Heart:993799927434063892> | Player \`${intr.user.tag}\` has Checked-in the team \`${team.teamName}\`!`,
             });
         } catch (error) {
-            const embed = new EmbedBuilder({
-                title: 'Moonbane Slayers Tournament',
-                description: `An unknown error happened, please report to the dev:  ${error}`,
-                footer: {
-                    text: 'Need help? Contact a moderator!',
-                },
-                timestamp: Date.now(),
-                color: resolveColor('#fe0c03'),
-            });
-            if (intr.replied || intr.deferred) {
-                intr.editReply({
-                    embeds: [embed],
-                });
-            } else {
-                intr.reply({
-                    embeds: [embed],
-                    ephemeral: true,
-                });
-            }
+            sendErrorMessage(intr, error);
         }
     }
-
-    // seconds to days, hours, minutes, seconds
 }

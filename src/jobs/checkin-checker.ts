@@ -1,9 +1,5 @@
 import moment from 'moment';
-import {
-    getTournamentsByStatus,
-    updateTournamentCi,
-    updateTournamentStatus,
-} from '../tournament/Tournament.js';
+import { getTournamentsByStatus } from '../tournament/Tournament.js';
 import { Job } from './job.js';
 import { EmbedBuilder, TextChannel, resolveColor } from 'discord.js';
 import { CustomClient } from '../extensions/custom-client.js';
@@ -29,7 +25,7 @@ export class CheckInChecker implements Job {
             if (moment().isAfter(tournamentClose)) {
                 // registration is closed, open check-in
                 const embed = new EmbedBuilder({
-                    title: 'Moonbane Slayers Tournament check-in',
+                    title: `${tournament.name} Tournament check-in`,
                     description: `The check-in for this tournament has opened, click the button below to check-in!\nOnly teams that have checked-in will be able to play in the tournament!\n\nCheck-in will close 20mins before the tournament!`,
                     footer: {
                         text: 'Only team leaders can check-in!',
@@ -42,7 +38,7 @@ export class CheckInChecker implements Job {
                     tournament.main_channel
                 ) as TextChannel;
                 if (channel) {
-                    await updateTournamentStatus(tournament.id, 2);
+                    await tournament.updateTournamentStatus(2);
                     const msg = await channel.send({
                         content: `<@&${tournament.role_id}>`,
                         embeds: [embed],
@@ -79,7 +75,7 @@ export class CheckInChecker implements Job {
                             },
                         ],
                     });
-                    await updateTournamentCi(tournament.id, msg.id); // update the check-in message id
+                    await tournament.updateTournamentCi(msg.id); // update the check-in message id
                 }
             }
         }

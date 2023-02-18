@@ -2,7 +2,8 @@ import { ButtonInteraction, EmbedBuilder, resolveColor } from 'discord.js';
 import moment from 'moment';
 
 import { EventData } from '../../models/internal-models.js';
-import { getTournamentByMessage } from '../../tournament/Tournament.js';
+import { getTournamentByMessage, sendErrorMessage } from '../../tournament/Tournament.js';
+import { InteractionUtils } from '../../utils/interaction-utils.js';
 import { Button, ButtonDeferType } from '../button.js';
 
 export class SignUpTimeLeft implements Button {
@@ -29,7 +30,7 @@ export class SignUpTimeLeft implements Button {
                 : secsToTime(registrationClose.diff(moment(), 'seconds'));
 
             const embed = new EmbedBuilder({
-                title: 'Moonbane Slayers Tournament - Time Left',
+                title: `${tournament.name} Tournament - Time Left`,
                 description: `The tournament starts in \`${formattedStart}\`\n Registrations close in \`${formattedClose}\``,
                 footer: {
                     text: 'Doubts or questions? DM tournament host!',
@@ -37,33 +38,14 @@ export class SignUpTimeLeft implements Button {
                 timestamp: Date.now(),
                 color: resolveColor('#6e4c70'),
             });
-            if (intr.replied || intr.deferred) {
-                intr.editReply({
-                    embeds: [embed],
-                });
-            } else {
-                intr.reply({
-                    embeds: [embed],
-                    ephemeral: true,
-                });
-            }
+            await InteractionUtils.send(intr, embed, true);
         } catch (error) {
-            if (intr.replied || intr.deferred) {
-                intr.editReply({
-                    content: `An unknown error happened, please report to the dev:  ${error}`,
-                });
-            } else {
-                intr.reply({
-                    content: `An unknown error happened, please report to the dev:  ${error}`,
-                    ephemeral: true,
-                });
-            }
+            sendErrorMessage(intr, error);
         }
     }
-
-    // seconds to days, hours, minutes, seconds
 }
 
+// seconds to days, hours, minutes, seconds
 function secsToTime(secs: number): string {
     let d = (secs / 8.64e4) | 0;
     let H = ((secs % 8.64e4) / 3.6e3) | 0;
