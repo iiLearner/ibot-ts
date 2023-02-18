@@ -26,15 +26,13 @@ import {
     MessageHandler,
     ReactionHandler,
 } from '../events/index.js';
+import { StartTournamentModal } from '../modal/actions/start_tournament.js';
+import { CheckIn } from '../modal/checkin/checkin.js';
+import { SignUpModal } from '../modal/signup/signup.js';
+import { SignUpSoloModal } from '../modal/signup/signup_solo.js';
 import { JobService, Logger } from '../services/index.js';
 import { PartialUtils } from '../utils/index.js';
-import { SignUpSoloModal } from '../modal/tournaments/signup_solo.js';
-import { SignUpTeamModal } from '../modal/tournaments/signup_team.js';
-import { SignUpModal } from '../modal/tournaments/signup.js';
-import { StartTournamentModal } from '../modal/tournaments/start_tournament.js';
-import { CheckIn } from '../buttons/tournament/checkin.js';
-import { TableBuilder } from '../utils/TableBuilder.js';
-import { DBConnection } from '../database/connect.js';
+import { SignUpTeamModal } from '../modal/signup/signup_team.js';
 
 const require = createRequire(import.meta.url);
 let Config = require('../../config/config.json');

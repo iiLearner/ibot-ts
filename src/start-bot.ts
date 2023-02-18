@@ -3,9 +3,9 @@ import { Options, Partials, TextChannel } from 'discord.js';
 import { createRequire } from 'node:module';
 
 import { Button } from './buttons/index.js';
-import { SignUpButton, SignUpSoloButton, SignUpTeamButton } from './buttons/tournament/index.js';
+import { SignUpButton, SignUpSoloButton, SignUpTeamButton } from './buttons/actions/index.js';
 import { ChatCommandMetadata, Command } from './commands/index.js';
-import { TournamentCommand } from './commands/modal/index.js';
+import { TournamentCommand } from './commands/tounament/index.js';
 import { DBConnection } from './database/connect.js';
 import {
     ButtonHandler,
@@ -29,15 +29,15 @@ import {
 import { Tournament } from './tournament/Tournament.js';
 import { Trigger } from './triggers/index.js';
 import { Team } from './tournament/Team.js';
-import { SignUpTimeLeft } from './buttons/tournament/time_left.js';
-import { SignOff } from './buttons/tournament/signoff.js';
-import { TournametTeams } from './buttons/tournament/teams.js';
+import { SignUpTimeLeft } from './buttons/actions/time_left.js';
+import { SignOff } from './buttons/unregister/signoff.js';
+import { TournametTeams } from './buttons/actions/teams.js';
 import { CheckInChecker } from './jobs/checkin-checker.js';
 import moment from 'moment';
-import { StartTournamentButton } from './buttons/tournament/start_tournament.js';
-import { CheckIn } from './buttons/tournament/checkin.js';
+import { StartTournamentButton } from './buttons/actions/start_tournament.js';
+import { CheckIn } from './modal/checkin/checkin.js';
 import { DeleterChecker } from './jobs/deleter.js';
-import { CheckinModal } from './buttons/tournament/checkin_modal.js';
+import { CheckinModal } from './buttons/checkin/checkin_modal.js';
 
 const require = createRequire(import.meta.url);
 let Config = require('../config/config.json');
