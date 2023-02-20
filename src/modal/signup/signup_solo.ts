@@ -16,7 +16,7 @@ export class SignUpSoloModal implements Modal {
 
             // checks
             if (tournament.isTournamentClosed()) return await tournament.tournamentClosed(intr);
-            if (tournament.isTournamentFull()) return await tournament.tournamentFull(intr);
+            if (await tournament.isTournamentFull()) return await tournament.tournamentFull(intr);
 
             const team = new Team(
                 playerName,

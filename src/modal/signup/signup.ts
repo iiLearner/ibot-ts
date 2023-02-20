@@ -1,4 +1,4 @@
-import { EmbedBuilder, ModalSubmitInteraction, resolveColor } from 'discord.js';
+import { ModalSubmitInteraction } from 'discord.js';
 
 import { Player } from '../../tournament/Player.js';
 import { Team } from '../../tournament/Team.js';
@@ -12,7 +12,7 @@ export class SignUpModal implements Modal {
             const messageId = intr.message.id;
             const tournament = await getTournamentByMessage(messageId);
             if (tournament.isTournamentClosed()) return await tournament.tournamentClosed(intr);
-            if (tournament.isTournamentFull()) return await tournament.tournamentFull(intr);
+            if (await tournament.isTournamentFull()) return await tournament.tournamentFull(intr);
 
             const playerName = intr.fields.getTextInputValue('ingame_name');
             const teamName = intr.fields.getTextInputValue('team_name');

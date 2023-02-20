@@ -7,6 +7,7 @@ import {
 } from 'discord.js';
 
 import { EventData } from '../../models/internal-models.js';
+import { getPlayerByUserId } from '../../tournament/User.js';
 import { Button, ButtonDeferType } from '../button.js';
 
 export class SignUpButton implements Button {
@@ -16,8 +17,8 @@ export class SignUpButton implements Button {
     public readonly requireGuild = true;
 
     public async execute(intr: ButtonInteraction, _data: EventData): Promise<void> {
+        const playerData = await getPlayerByUserId(intr.user.id);
         const modal = new ModalBuilder().setCustomId('signup_modal').setTitle('Sign Up');
-        // Add components to modal
 
         // Create the text input components
         const team_name = new TextInputBuilder()
@@ -50,8 +51,10 @@ export class SignUpButton implements Button {
             .setMinLength(8)
             .setMaxLength(30);
 
-        // An action row only holds one text input,
-        // so you need one action row per text input.
+        // set defaults
+        if (playerData) ingame_name.setValue(playerData.game_name);
+        if (playerData) ingame_id.setValue(playerData.game_id);
+
         const firstactionrow = new ActionRowBuilder().addComponents(
             ingame_id
         ) as ActionRowBuilder<TextInputBuilder>;

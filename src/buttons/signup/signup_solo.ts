@@ -7,6 +7,8 @@ import {
 } from 'discord.js';
 
 import { EventData } from '../../models/internal-models.js';
+import { getTournamentByMessage } from '../../tournament/Tournament.js';
+import { getPlayerByUserId } from '../../tournament/User.js';
 import { Button, ButtonDeferType } from '../button.js';
 
 export class SignUpSoloButton implements Button {
@@ -16,6 +18,16 @@ export class SignUpSoloButton implements Button {
     public readonly requireGuild = true;
 
     public async execute(intr: ButtonInteraction, _data: EventData): Promise<void> {
+        const messageId = intr.message.id;
+        const tournament = await getTournamentByMessage(messageId);
+
+        // checks
+        if (tournament.isTournamentClosed()) return await tournament.tournamentClosed(intr);
+        if (await tournament.isTournamentFull()) return await tournament.tournamentFull(intr);
+
+        // pre-fill inputs
+        const playerData = await getPlayerByUserId(intr.user.id);
+
         const modal = new ModalBuilder()
             .setCustomId('signup_solo_modal')
             .setTitle('Sign Up (Solo)');
@@ -39,6 +51,10 @@ export class SignUpSoloButton implements Button {
             .setPlaceholder('In game ID')
             .setMinLength(8)
             .setMaxLength(30);
+
+        // set defaults
+        if (playerData) ingame_name.setValue(playerData.game_name);
+        if (playerData) ingame_id.setValue(playerData.game_id);
 
         const secondActionRow = new ActionRowBuilder().addComponents(
             ingame_name

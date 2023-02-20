@@ -33,6 +33,7 @@ import { SignUpSoloModal } from '../modal/signup/signup_solo.js';
 import { JobService, Logger } from '../services/index.js';
 import { PartialUtils } from '../utils/index.js';
 import { SignUpTeamModal } from '../modal/signup/signup_team.js';
+import { CreateTournament } from '../modal/actions/create_tournament.js';
 
 const require = createRequire(import.meta.url);
 let Config = require('../../config/config.json');
@@ -324,6 +325,9 @@ export class Bot {
                     break;
                 case 'checkin_modal_response':
                     new CheckIn().execute(intr);
+                    break;
+                case 'tournament_create':
+                    new CreateTournament().execute(intr);
                     break;
                 default:
                     break;

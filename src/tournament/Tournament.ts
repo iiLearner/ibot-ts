@@ -1,4 +1,10 @@
-import { EmbedBuilder, ModalSubmitInteraction, resolveColor, TextChannel } from 'discord.js';
+import {
+    ButtonInteraction,
+    EmbedBuilder,
+    ModalSubmitInteraction,
+    resolveColor,
+    TextChannel,
+} from 'discord.js';
 import moment from 'moment';
 
 import { DBConnection } from '../database/connect.js';
@@ -14,8 +20,10 @@ export class Tournament {
     role_id: string;
     main_channel: string;
     tournament_time: string;
+    tournament_close: string;
     status: number;
     message_id: string;
+    message_action_id: string;
     message_id_ci: string;
     mode: number;
     platform: string;
@@ -23,6 +31,7 @@ export class Tournament {
     subs: number;
     registration_offset: number;
     number_of_games: number;
+    hero_points: boolean;
     streamer: string;
     created: string | null;
     db: DBConnection;
@@ -34,6 +43,7 @@ export class Tournament {
         log_channel: string,
         main_channel: string,
         message_id: string,
+        message_action_id: string,
         role_id: string,
         tournament_time: string,
         mode: number,
@@ -42,6 +52,7 @@ export class Tournament {
         teams_limit: number,
         registration_offset: number,
         number_of_games: number,
+        hero_points: boolean,
         streamer?: string,
         id?: number,
         message_id_ci?: string,
@@ -55,6 +66,7 @@ export class Tournament {
         this.main_channel = main_channel;
         this.tournament_time = tournament_time;
         this.message_id = message_id;
+        this.message_action_id = message_action_id;
         this.role_id = role_id;
         this.mode = mode;
         this.platform = platform;
@@ -62,18 +74,37 @@ export class Tournament {
         this.subs = subs;
         this.registration_offset = registration_offset;
         this.number_of_games = number_of_games;
+        this.hero_points = hero_points;
         this.streamer = streamer || '';
         this.id = id || null;
         this.message_id_ci = message_id_ci || null;
         this.created = created || null;
         this.status = status || 1;
+
+        // take the tournament_time and substraction the registration_offset
+        this.tournament_close = moment(tournament_time, 'DD-MM-YYYY HH:mm:ss')
+            .subtract(registration_offset, 'hours')
+            .format('DD-MM-YYYY HH:mm:ss');
+
         this.db = new DBConnection();
     }
 
-    async createTournament(): Promise<void> {
+    async createTournament(server_name: string, username: string): Promise<void> {
         return await new Promise((resolve, reject) => {
             try {
-                const sql = `INSERT INTO tournaments (name, userid, serverid, log_channel, main_channel, message_id, role_id, tournament_time, mode) VALUES ('${this.name}', '${this.userid}', '${this.serverid}', '${this.log_channel}', '${this.main_channel}', '${this.message_id}', '${this.role_id}','${this.tournament_time}', '${this.mode}')`;
+                const sql = `INSERT INTO tournaments (name, userid, serverid, log_channel, main_channel, message_id, role_id, tournament_time, mode, streamer, platform, tournament_close, tournament_close_offset, tournament_subs, tournament_teams_limit, tournament_games, username, server_name, hero_points, message_action_id) VALUES ('${
+                    this.name
+                }', '${this.userid}', '${this.serverid}', '${this.log_channel}', '${
+                    this.main_channel
+                }', '${this.message_id}', '${this.role_id}','${this.tournament_time}', '${
+                    this.mode
+                }', '${this.streamer}', '${this.platform}', '${this.tournament_close}', '${
+                    this.registration_offset
+                }', '${this.subs}', '${this.teams_limit}', '${
+                    this.number_of_games
+                }', '${username}', '${server_name}', '${
+                    this.hero_points ? 1 : 0
+                }', '${this.message_action_id}')`;
                 this.db.con.query(sql, (err, _result) => {
                     if (err) reject(err);
                     resolve();
@@ -110,7 +141,7 @@ export class Tournament {
         return false;
     }
 
-    async tournamentClosed(intr: ModalSubmitInteraction): Promise<void> {
+    async tournamentClosed(intr: ModalSubmitInteraction | ButtonInteraction): Promise<void> {
         const embed = new EmbedBuilder({
             title: `${this.name} Tournament`,
             description: `The registration for this tournament has closed!`,
@@ -132,7 +163,7 @@ export class Tournament {
         return false;
     }
 
-    async tournamentFull(intr: ModalSubmitInteraction): Promise<void> {
+    async tournamentFull(intr: ModalSubmitInteraction | ButtonInteraction): Promise<void> {
         const embed = new EmbedBuilder({
             title: `${this.name} Tournament`,
             description: `Sorry! The tournament is currently at full capacity!`,
@@ -261,7 +292,7 @@ export async function getTournamentByMessage(message_id: string): Promise<Tourna
     return await new Promise((resolve, reject) => {
         try {
             const db = new DBConnection();
-            const sql = `SELECT * FROM tournaments WHERE message_id = '${message_id}' OR message_id_ci = '${message_id}' LIMIT 1`;
+            const sql = `SELECT * FROM tournaments WHERE message_id = '${message_id}' OR message_id_ci = '${message_id}' OR message_action_id = '${message_id}' LIMIT 1`;
             db.con.query(sql, (err, result) => {
                 if (err) reject(err);
                 if (result[0] === undefined) {
@@ -275,13 +306,16 @@ export async function getTournamentByMessage(message_id: string): Promise<Tourna
                     result[0].log_channel,
                     result[0].main_channel,
                     result[0].message_id,
+                    result[0].message_action_id,
                     result[0].role_id,
                     result[0].tournament_time,
                     result[0].mode,
                     result[0].platform,
-                    result[0].subs,
-                    result[0].registration_offset,
-                    result[0].number_of_games,
+                    result[0].tournament_subs,
+                    result[0].tournament_teams_limit,
+                    result[0].tournament_close_offset,
+                    result[0].tournament_games,
+                    result[0].hero_points == 1 ? true : false,
                     result[0].streamer,
                     result[0].ID,
                     result[0].message_id_ci,
@@ -315,14 +349,16 @@ export async function getTournamentsByStatus(status: number): Promise<Tournament
                             tournament.log_channel,
                             tournament.main_channel,
                             tournament.message_id,
+                            tournament.message_action_id,
                             tournament.role_id,
                             tournament.tournament_time,
                             tournament.mode,
                             tournament.platform,
-                            tournament.subs,
-                            tournament.teams_limit,
-                            tournament.registration_offset,
-                            tournament.number_of_games,
+                            tournament.tournament_subs,
+                            tournament.tournament_teams_limit,
+                            tournament.tournament_close_offset,
+                            tournament.tournament_games,
+                            result[0].hero_points == 1 ? true : false,
                             tournament.streamer,
                             tournament.ID,
                             tournament.message_id_ci,

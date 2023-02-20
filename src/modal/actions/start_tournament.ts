@@ -95,7 +95,8 @@ export class StartTournamentModal implements Modal {
 
             tournamentTeams.forEach(async team => {
                 intr.guild.members.fetch(team.teamLeaderId).then(async captain => {
-                    if (!captain) return;
+                    if (!captain) return; // only send to captains
+                    if (team.teamStatus == 1) return; // did not check in
                     captain.send({
                         embeds: [tournamentEmbed],
                     });

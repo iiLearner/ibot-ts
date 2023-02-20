@@ -1,10 +1,9 @@
 import {
     ActionRowBuilder,
     ChatInputCommandInteraction,
-    EmbedBuilder,
     ModalBuilder,
+    PermissionsBitField,
     PermissionsString,
-    resolveColor,
     TextInputBuilder,
     TextInputStyle,
 } from 'discord.js';
@@ -12,26 +11,48 @@ import moment from 'moment-timezone';
 
 import { EventData } from '../../models/internal-models.js';
 import { InteractionUtils } from '../../utils/interaction-utils.js';
+import { PendingTournys } from '../../utils/pending-tourneys.js';
 import { Command, CommandDeferType } from '../index.js';
 
 export class TournamentCommand implements Command {
     public names = ['tournament'];
-    public deferType = CommandDeferType.PUBLIC;
+    public deferType = CommandDeferType.NONE;
     public requireClientPerms: PermissionsString[] = [];
     public async execute(intr: ChatInputCommandInteraction, _data: EventData): Promise<void> {
-        let args = {
-            mode: intr.options.getString('mode'),
+        const new_args = {
+            mode: intr.options.getInteger('mode'),
             time: intr.options.getString('date_time'),
-            log_channel: intr.options.getString('log_channel'),
+            teams_limit: intr.options.getInteger('teams_limit'),
+            registration_offset: intr.options.getInteger('registration_offset'),
+            platform: intr.options.getString('platform'),
+            games: intr.options.getInteger('games'),
+            subs: intr.options.getInteger('subs'),
+            log_channel: intr.options.getChannel('log_channel'),
+            mention_role: intr.options.getRole('mention_role'),
             streamer: intr.options.getString('streamer'),
-            registraionclose_offset: intr.options.getString('registraionclose_offset'),
+            hero_points: intr.options.getBoolean('hero_points'),
         };
+
+        // set default values
+        const args = this.getDefaultedArgs(new_args, intr);
 
         // check permissions
         if (intr.user.id !== '266947686194741248') {
             await InteractionUtils.send(
                 intr,
                 'You do not have permission to use this command',
+                true
+            );
+            return;
+        }
+
+        const member = await intr.guild.members.fetch(intr.client.user.id);
+
+        // check if we have role creation permissions
+        if (!member.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
+            await InteractionUtils.send(
+                intr,
+                'I do not have permission to create roles, please give me the `Manage Roles` permission',
                 true
             );
             return;
@@ -48,67 +69,10 @@ export class TournamentCommand implements Command {
             }
         }
 
-        let embed: EmbedBuilder;
+        // local map to keep track of pending tournys
+        const ppndingTournys = new PendingTournys();
+        ppndingTournys.addTournament(intr.user.id, args);
 
-        const description = `
-        **Tournament Details**\nWelcome to the weekly Naraka: Bladepoint official server tournament/scrim!\nThe tournament will consist of 3 matches in a custom room with players from all platforms, to win the tournament you must get as many points as you can in 3 games.\n\n${this.getExtraDescription(
-            args.mode
-        )}\n\`\`\`Please read the rules carefully as they are the most important part in this tournament!\`\`\`
-        `;
-
-        embed = new EmbedBuilder({
-            title: 'Moonbane Slayers Tournament',
-            description: description,
-            fields: [
-                {
-                    name: 'Game Type',
-                    value: this.getModeText(args.mode),
-                    inline: true,
-                },
-                {
-                    name: '# of Games',
-                    value: '3',
-                    inline: true,
-                },
-                {
-                    name: 'Time',
-                    value: datetime.format('dddd, MMMM Do YYYY, h:mm:ss a [EST]'),
-                    inline: false,
-                },
-                {
-                    name: 'Registrations close',
-                    value: datetime
-                        .subtract(120, 'minutes')
-                        .format('dddd, MMMM Do YYYY, h:mm:ss a [EST]'),
-                    inline: false,
-                },
-                {
-                    name: 'Party limit',
-                    value: this.getPartyLimit(args.mode),
-                    inline: false,
-                },
-                {
-                    name: 'Support',
-                    value: `Contact <@${intr.member.user.id}> for any questions`,
-                    inline: false,
-                },
-            ],
-            footer: {
-                text: 'Registrations close 2 hours before the tournament starts',
-            },
-            timestamp: Date.now(),
-            color: resolveColor('#0099ff'),
-        });
-
-        if (args.streamer) {
-            embed.addFields({
-                name: 'Streamer',
-                value: args.streamer,
-                inline: false,
-            });
-        }
-
-        //intr.deferReply();
         // prepare modal
         const modal = new ModalBuilder()
             .setCustomId('tournament_create')
@@ -121,8 +85,8 @@ export class TournamentCommand implements Command {
             // Short means only a single line of text
             .setStyle(TextInputStyle.Short)
             .setPlaceholder(`Tournament name`)
-            .setMinLength(30)
-            .setMaxLength(500);
+            .setMinLength(3)
+            .setMaxLength(128);
         const rowName = new ActionRowBuilder().addComponents(
             tName
         ) as ActionRowBuilder<TextInputBuilder>;
@@ -135,171 +99,30 @@ export class TournamentCommand implements Command {
             // Short means only a single line of text
             .setStyle(TextInputStyle.Paragraph)
             .setPlaceholder(`Enter a short description for the tournament.`)
-            .setMinLength(30)
-            .setMaxLength(500);
+            .setRequired(false)
+            .setMinLength(0)
+            .setMaxLength(800);
+
         const row = new ActionRowBuilder().addComponents(
             tDesccription
         ) as ActionRowBuilder<TextInputBuilder>;
         modal.addComponents(row);
 
         // Show the modal to the user
-        //await intr.showModal(modal);
-        console.log(intr);
+        await intr.showModal(modal);
+    }
 
-        const role = intr.guild.roles.cache.get('1064512125617328158');
-        const content = {
-            content: `${role}`,
-            embeds: [embed],
-            components: [this.getComponents(args.mode)],
+    getDefaultedArgs(args: any, intr: ChatInputCommandInteraction): any {
+        return {
+            ...args,
+            registration_offset: args.registration_offset || 2,
+            platform: args.platform || 'ALL',
+            games: args.games || 3,
+            subs: args.subs || 0,
+            log_channel: args.log_channel ? args.log_channel.id : intr.channel.id,
+            mention_role: args.mention_role ? args.mention_role.id : null,
+            streamer: args.streamer || null,
+            hero_points: args.hero_points || false,
         };
-
-        const channel = intr.channel;
-        if (channel) {
-            const msg = await channel.send({
-                ...content,
-                allowedMentions: { roles: [role?.id], repliedUser: false },
-            });
-
-            // create a role
-            const TournamentRole = await intr.guild.roles.create({
-                name: `MS#${Math.floor(Math.random() * 1000)}`,
-                mentionable: false,
-            });
-
-            /*const tournament = new Tournament(
-                'Moonbane Slayers Tournament',
-                intr.user.id,
-                intr.guild.id,
-                '1064513797492068364',
-                msg.channel.id,
-                msg.id,
-                TournamentRole.id,
-                datetime.add('120', 'minutes').format('DD-MM-YYYY HH:mm:ss'),
-                Number(args.mode),
-                'ALL',
-                2,
-                2,
-                3
-            );*/
-            //await tournament.createTournament();
-            intr.deleteReply();
-        }
-    }
-
-    getModeText(mode: string): string {
-        switch (mode) {
-            case '1':
-                return 'Solo';
-            case '2':
-                return 'Duo';
-            case '3':
-                return 'Trios';
-            default:
-                return 'Invalid';
-        }
-    }
-
-    getPartyLimit(mode: string): string {
-        switch (mode) {
-            case '1':
-                return '30 players (30 teams of 1)';
-            case '2':
-                return '60 players (30 teams of 2) +1 sub';
-            case '3':
-                return '60 players (20 teams of 3) + 2 subs';
-            default:
-                return 'Invalid';
-        }
-    }
-
-    getExtraDescription(mode: string): string {
-        switch (mode) {
-            case '1':
-                return '_Press the button below to sign up for the tournament_';
-            case '2':
-            case '3':
-                return '_Press the button below to create a team or join an existing one_';
-            default:
-                return 'Invalid';
-        }
-    }
-
-    getComponents(mode: string): any {
-        let components = {};
-        switch (mode) {
-            case '1':
-                components = {
-                    type: 1,
-                    components: [
-                        {
-                            type: 2,
-                            style: 1,
-                            label: 'Signup',
-                            custom_id: 'sign_up_solo',
-                        },
-                        {
-                            type: 2,
-                            style: 2,
-                            label: 'Unregister',
-                            custom_id: 'sign_off',
-                        },
-                        {
-                            type: 2,
-                            style: 2,
-                            label: 'Time Left',
-                            custom_id: 'sign_up_time_left',
-                        },
-                        {
-                            type: 2,
-                            style: 2,
-                            label: 'Teams',
-                            custom_id: 'tournament_teams',
-                        },
-                    ],
-                };
-                break;
-            case '2':
-            case '3': {
-                components = {
-                    type: 1,
-                    components: [
-                        {
-                            type: 2,
-                            style: 1,
-                            label: 'Create Team',
-                            custom_id: 'sign_up',
-                        },
-                        {
-                            type: 2,
-                            style: 2,
-                            label: 'Join Team',
-                            custom_id: 'sign_up_team',
-                        },
-                        {
-                            type: 2,
-                            style: 2,
-                            label: 'Unregister',
-                            custom_id: 'sign_off',
-                        },
-                        {
-                            type: 2,
-                            style: 2,
-                            label: 'Time Left',
-                            custom_id: 'sign_up_time_left',
-                        },
-                        {
-                            type: 2,
-                            style: 2,
-                            label: 'Teams',
-                            custom_id: 'tournament_teams',
-                        },
-                    ],
-                };
-                break;
-            }
-            default:
-                components = {};
-        }
-        return components;
     }
 }

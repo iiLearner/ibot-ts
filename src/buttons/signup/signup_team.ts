@@ -7,6 +7,7 @@ import {
 } from 'discord.js';
 
 import { EventData } from '../../models/internal-models.js';
+import { getPlayerByUserId } from '../../tournament/User.js';
 import { Button, ButtonDeferType } from '../button.js';
 
 export class SignUpTeamButton implements Button {
@@ -16,6 +17,9 @@ export class SignUpTeamButton implements Button {
     public readonly requireGuild = true;
 
     public async execute(intr: ButtonInteraction, _data: EventData): Promise<void> {
+        // pre-fill inputs
+        const playerData = await getPlayerByUserId(intr.user.id);
+
         const modal = new ModalBuilder().setCustomId('signup_team_modal').setTitle('Sign Up');
         // Add components to modal
 
@@ -49,6 +53,10 @@ export class SignUpTeamButton implements Button {
             .setPlaceholder('In game ID')
             .setMinLength(8)
             .setMaxLength(30);
+
+        // set defaults
+        if (playerData) ingame_name.setValue(playerData.game_name);
+        if (playerData) ingame_id.setValue(playerData.game_id);
 
         const firstactionrow = new ActionRowBuilder().addComponents(
             ingame_id

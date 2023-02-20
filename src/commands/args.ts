@@ -5,19 +5,19 @@ export class Args {
         {
             name: 'mode',
             description: 'mode',
-            type: ApplicationCommandOptionType.String,
+            type: ApplicationCommandOptionType.Integer,
             choices: [
                 {
                     name: 'solo',
-                    value: '1',
+                    value: 1,
                 },
                 {
                     name: 'duo',
-                    value: '2',
+                    value: 2,
                 },
                 {
                     name: 'trios',
-                    value: '3',
+                    value: 3,
                 },
             ],
         },
@@ -108,6 +108,13 @@ export class Args {
                     value: 5,
                 },
             ],
+        },
+        {
+            name: 'hero_points',
+            description:
+                'Enable Hero points? Users will be asked their hero choice on checkin (default: false)',
+            type: ApplicationCommandOptionType.Boolean,
+            required: false,
         },
         {
             name: 'platform',

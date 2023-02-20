@@ -1,4 +1,5 @@
 import { DBConnection } from '../database/connect.js';
+import { User } from './User.js';
 
 export class Player {
     id: number | undefined;
@@ -25,5 +26,9 @@ export class Player {
         } catch (err) {
             console.log(err);
         }
+
+        // update insert into users
+        const user = new User(this.userid, this.ig_id, this.ig_name);
+        await user.updateOrCreateUser();
     }
 }
